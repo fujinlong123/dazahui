@@ -1,14 +1,15 @@
 package cn.suishoucm.weixin.netmi.controller;
 
 import java.net.URI;
-import java.net.URL;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.impl.client.BasicCookieStore;
-import org.apache.http.protocol.HttpContext;
 import org.jsoup.Jsoup;
 import org.jsoup.helper.StringUtil;
 import org.jsoup.nodes.Document;
@@ -16,20 +17,22 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
 
+import cn.suishoucm.weixin.netmi.util.ByteArrayResponse;
 import cn.suishoucm.weixin.netmi.util.HttpUtils;
-import cn.suishoucm.weixin.netmi.util.StringResponse;
 
 @Controller
 
 public class UrlLoadController {
 	Logger logger = LoggerFactory.getLogger(UrlLoadController.class);
 	private static HttpClientContext context = HttpClientContext.create();
+	private static Map<String, String> map = new ConcurrentHashMap<>();
+
 
 	static {
 		context.setCookieStore(new BasicCookieStore());
@@ -37,116 +40,111 @@ public class UrlLoadController {
 
 	@RequestMapping(value = "")
 
-	public String openUrl(String url, Model model) throws Exception {
-
-		return page(url, model);
+	public void openUrl(String url, Model model, HttpServletRequest request, HttpServletResponse response)
+			throws Exception {
+		request.getSession().setAttribute("host", url);
+		page(url, model, response);
 
 	}
 
-	private static Map<String, String> map = new HashMap<>();
-
+	
 	@RequestMapping("{a1}/{a2:.+}")
-	public String a1a2(@PathVariable("a1") String a1, @PathVariable("a2") String a2, Model model) throws Exception {
-		String url = StringUtil.resolve(map.get(a1), a2);
-		return page(url, model);
+	public void a1a2(@PathVariable("a1") String a1, @PathVariable("a2") String a2, Model model,
+			HttpServletRequest request, HttpServletResponse response) throws Exception {
+		String url = StringUtil.resolve(getHost(a1, request), a2);
+		page(url, model, response);
 	}
 
 	@RequestMapping("{a1}/{a2}/{a3:.+}")
-	public String a1a2a3(@PathVariable("a1") String a1, @PathVariable("a2") String a2, @PathVariable("a3") String a3,
-			Model model) throws Exception {
+	public void a1a2a3(@PathVariable("a1") String a1, @PathVariable("a2") String a2, @PathVariable("a3") String a3,
+			Model model, HttpServletRequest request, HttpServletResponse response) throws Exception {
 		String relativePath = a2 + "/" + a3;
 
-		String url = StringUtil.resolve(map.get(a1), relativePath);
+		String url = StringUtil.resolve(getHost(a1, request), relativePath);
 
-		return page(url, model);
+		page(url, model, response);
 	}
 
 	@RequestMapping("{a1}/{a2}/{a3}/{a4:.+}")
-	public String a1a2a3a4(@PathVariable("a1") String a1, @PathVariable("a2") String a2, @PathVariable("a3") String a3,
-			@PathVariable("a4") String a4, Model model) throws Exception {
+	public void a1a2a3a4(@PathVariable("a1") String a1, @PathVariable("a2") String a2, @PathVariable("a3") String a3,
+			@PathVariable("a4") String a4, Model model, HttpServletRequest request, HttpServletResponse response)
+					throws Exception {
 		String relativePath = a2 + "/" + a3 + "/" + a4;
 
-		String url = StringUtil.resolve(map.get(a1), relativePath);
+		String url = StringUtil.resolve(getHost(a1, request), relativePath);
 
-		return page(url, model);
+		page(url, model, response);
 	}
 
 	@RequestMapping("{a1}/{a2}/{a3}/{a4}/{a5:.+}")
-	public String a1a2a3a4a5(@PathVariable("a1") String a1, @PathVariable("a2") String a2,
-			@PathVariable("a3") String a3, @PathVariable("a4") String a4, @PathVariable("a5") String a5, Model model)
-					throws Exception {
+	public void a1a2a3a4a5(@PathVariable("a1") String a1, @PathVariable("a2") String a2, @PathVariable("a3") String a3,
+			@PathVariable("a4") String a4, @PathVariable("a5") String a5, Model model, HttpServletRequest request,
+			HttpServletResponse response) throws Exception {
 		String relativePath = a2 + "/" + a3 + "/" + a4 + "/" + a5;
-		String url = StringUtil.resolve(map.get(a1), relativePath);
-		return page(url, model);
+		String url = StringUtil.resolve(getHost(a1, request), relativePath);
+		page(url, model, response);
 	}
 
 	@RequestMapping("{a1}/{a2}/{a3}/{a4}/{a5}/{a6:.+}")
-	public String a1a2a3a4a5a6(@PathVariable("a1") String a1, @PathVariable("a2") String a2,
+	public void a1a2a3a4a5a6(@PathVariable("a1") String a1, @PathVariable("a2") String a2,
 			@PathVariable("a3") String a3, @PathVariable("a4") String a4, @PathVariable("a5") String a5,
-			@PathVariable("a6") String a6, Model model) throws Exception {
+			@PathVariable("a6") String a6, Model model, HttpServletRequest request, HttpServletResponse response)
+					throws Exception {
 		String relativePath = a2 + "/" + a3 + "/" + a4 + "/" + a5 + "/" + a6;
-		String url = StringUtil.resolve(map.get(a1), relativePath);
-		return page(url, model);
+		String url = StringUtil.resolve(getHost(a1, request), relativePath);
+		page(url, model, response);
 	}
 
 	@RequestMapping("{a1}/{a2}/{a3}/{a4}/{a5}/{a6}/{a7:.+}")
-	public String a1a2a3a4a5a6a7(@PathVariable("a1") String a1, @PathVariable("a2") String a2,
+	public void a1a2a3a4a5a6a7(@PathVariable("a1") String a1, @PathVariable("a2") String a2,
 			@PathVariable("a3") String a3, @PathVariable("a4") String a4, @PathVariable("a5") String a5,
-			@PathVariable("a6") String a6, @PathVariable("a7") String a7, Model model) throws Exception {
+			@PathVariable("a6") String a6, @PathVariable("a7") String a7, Model model, HttpServletRequest request,
+			HttpServletResponse response) throws Exception {
 		String relativePath = a2 + "/" + a3 + "/" + a4 + "/" + a5 + "/" + a6 + "/" + a7;
 
-		String url = StringUtil.resolve(map.get(a1), relativePath);
-		return page(url, model);
+		String url = StringUtil.resolve(getHost(a1, request), relativePath);
+		page(url, model, response);
 	}
 
 	@RequestMapping("{a1}/{a2}/{a3}/{a4}/{a5}/{a6}/{a7}/{a8:.+}")
-	public String a1a2a3a4a5a6a7a8(@PathVariable("a1") String a1, @PathVariable("a2") String a2,
+	public void a1a2a3a4a5a6a7a8(@PathVariable("a1") String a1, @PathVariable("a2") String a2,
 			@PathVariable("a3") String a3, @PathVariable("a4") String a4, @PathVariable("a5") String a5,
-			@PathVariable("a6") String a6, @PathVariable("a7") String a7, @PathVariable("a8") String a8, Model model)
-					throws Exception {
+			@PathVariable("a6") String a6, @PathVariable("a7") String a7, @PathVariable("a8") String a8, Model model,
+			HttpServletRequest request, HttpServletResponse response) throws Exception {
 		String relativePath = a2 + "/" + a3 + "/" + a4 + "/" + a5 + "/" + a6 + "/" + a7 + "/" + a8;
-		String url = StringUtil.resolve(map.get(a1), relativePath);
-		return page(url, model);
+		String url = StringUtil.resolve(getHost(a1, request), relativePath);
+		page(url, model, response);
 	}
 
 	@RequestMapping("{a1}/{a2}/{a3}/{a4}/{a5}/{a6}/{a7}/{a8}/{a9:.+}")
-	public String a1a2a3a4a5a6a7a9(@PathVariable("a1") String a1, @PathVariable("a2") String a2,
+	public void a1a2a3a4a5a6a7a9(@PathVariable("a1") String a1, @PathVariable("a2") String a2,
 			@PathVariable("a3") String a3, @PathVariable("a4") String a4, @PathVariable("a5") String a5,
 			@PathVariable("a6") String a6, @PathVariable("a7") String a7, @PathVariable("a8") String a8,
-			@PathVariable("a9") String a9, Model model) throws Exception {
+			@PathVariable("a9") String a9, Model model, HttpServletRequest request, HttpServletResponse response)
+					throws Exception {
 		String relativePath = a2 + "/" + a3 + "/" + a4 + "/" + a5 + "/" + a6 + "/" + a7 + "/" + a8 + "/" + a9;
-		String url = StringUtil.resolve(map.get(a1), relativePath);
-		return page(url, model);
+		String url = StringUtil.resolve(getHost(a1, request), relativePath);
+		page(url, model, response);
 	}
 
 	@RequestMapping("{a1}/{a2}/{a3}/{a4}/{a5}/{a6}/{a7}/{a8}/{a9}/{a10:.+}")
-	public String a1a2a3a4a5a6a7a9a10(@PathVariable("a1") String a1, @PathVariable("a2") String a2,
+	public void a1a2a3a4a5a6a7a9a10(@PathVariable("a1") String a1, @PathVariable("a2") String a2,
 			@PathVariable("a3") String a3, @PathVariable("a4") String a4, @PathVariable("a5") String a5,
 			@PathVariable("a6") String a6, @PathVariable("a7") String a7, @PathVariable("a8") String a8,
-			@PathVariable("a9") String a9, @PathVariable("a10") String a10, Model model) throws Exception {
+			@PathVariable("a9") String a9, @PathVariable("a10") String a10, Model model, HttpServletRequest request,
+			HttpServletResponse response) throws Exception {
 		String relativePath = a2 + "/" + a3 + "/" + a4 + "/" + a5 + "/" + a6 + "/" + a7 + "/" + a8 + "/" + a9 + "/"
 				+ a10;
-		String url = StringUtil.resolve(map.get(a1), relativePath);
-		return page(url, model);
+		String url = StringUtil.resolve(getHost(a1, request), relativePath);
+		page(url, model, response);
 	}
 
-	private String page(String url, Model model) throws Exception {
+	private void page(String url, Model model, HttpServletResponse response) throws Exception {
+		logger.info("º”‘ÿ£∫"+url);
 		URI baseUri = new URI(url);
-		System.out.println("œ¬‘ÿ£∫" + url);
-		if (url.endsWith(".jpg") || url.endsWith(".gif") || url.endsWith(".png")) {
-			model.addAttribute("binary", HttpUtils.getBinary(url).getResponseBody());
-			return "/urlLoad/img";
-		} else if (url.endsWith(".css")) {
-			String html = HttpUtils.get(url, context).getResponseBody();
-			model.addAttribute("css", html);
-			return "/urlLoad/css";
-
-		} else if (url.endsWith(".js")) {
-			String html = HttpUtils.get(url, context).getResponseBody();
-			model.addAttribute("js", html);
-			return "/urlLoad/js";
-		} else {
-			String html = HttpUtils.get(url, context).getResponseBody();
+		ByteArrayResponse bar = HttpUtils.getBinary(url);
+		if (bar.getMimeType().equals("text/html")) {
+			String html = new String(bar.getResponseBody(), bar.getCharset());
 			Document doc = Jsoup.parse(html);
 
 			Elements eles = doc.getElementsByAttribute("src");
@@ -154,10 +152,15 @@ public class UrlLoadController {
 
 			eles = doc.getElementsByAttribute("href");
 			attrFilter(eles, baseUri, "href");
+			html=doc.html();
+			bar.setResponseBody(html.getBytes(bar.getCharset()));
 
-			model.addAttribute("html", doc.html());
-			return "/urlLoad/html";
 		}
+		response.setContentType(bar.getMimeType());
+		if (bar.getCharset() != null) {
+			response.setCharacterEncoding(bar.getCharset().toString());
+		}
+		response.getOutputStream().write(bar.getResponseBody());
 
 	}
 
@@ -170,9 +173,9 @@ public class UrlLoadController {
 				if (host == null) {
 					host = baseUri.getHost();
 				}
-				String id = DigestUtils.md5Hex(host);
+				String id = "mirrorId_" + DigestUtils.md5Hex(host);
 				String scheme = uri.getScheme();
-				if (scheme == null) {
+				if (scheme == null||(!scheme.equals("http")&&!scheme.equals("https"))) {
 					scheme = baseUri.getScheme();
 				}
 				map.put(id, scheme + "://" + host);
@@ -183,6 +186,14 @@ public class UrlLoadController {
 			}
 
 		}
+	}
+
+	private String getHost(String key, HttpServletRequest request) {
+		String host = map.get(key);
+		if (host == null) {
+			host = (String) request.getSession().getAttribute("host") + "/" + key;
+		}
+		return host;
 	}
 
 }

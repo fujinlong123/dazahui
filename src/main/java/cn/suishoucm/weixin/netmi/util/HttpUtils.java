@@ -35,11 +35,13 @@ import org.apache.http.ssl.SSLContexts;
 import org.apache.http.util.EntityUtils;
 
 public class HttpUtils {
+	//User-Agent:Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.84 Safari/537.36
 	private static final RequestConfig requestConfig = RequestConfig.custom().setConnectionRequestTimeout(150000).setConnectTimeout(150000).setSocketTimeout(150000).build();
 
 	private static CloseableHttpClient httpclient;
 
 	static {
+	
 		try {
 			SSLContext sslContext = SSLContexts.custom().loadTrustMaterial(new TrustStrategy() {
 				@Override
@@ -47,7 +49,7 @@ public class HttpUtils {
 					return true;
 				}
 			}).build();
-			httpclient = HttpClients.custom().setMaxConnTotal(200).setMaxConnPerRoute(200).setSSLContext(sslContext).setDefaultRequestConfig(requestConfig).build();
+			httpclient = HttpClients.custom().setMaxConnTotal(200).setMaxConnPerRoute(200).setSSLContext(sslContext).setUserAgent("Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.84 Safari/537.36").setDefaultRequestConfig(requestConfig).build();
 		} catch (Exception e) {
 			httpclient = HttpClients.custom().setMaxConnTotal(200).setMaxConnPerRoute(200).setDefaultRequestConfig(requestConfig).build();;
 			e.printStackTrace();
@@ -90,8 +92,14 @@ public class HttpUtils {
 			if (contentType != null) {
 				mimeType = ContentType.get(entity).getMimeType();
 			}
+			
 
 			myResponse.setMimeType(mimeType);
+			Charset charset = contentType != null ? contentType.getCharset() : null;
+			if (charset == null) {
+				charset = Charset.forName("utf-8");
+			}
+			myResponse.setCharset(charset);
 			byte[] bytes = entity != null ? EntityUtils.toByteArray(entity) : null;
 			myResponse.setResponseBody(bytes);
 
