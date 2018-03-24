@@ -14,6 +14,8 @@ import org.jsoup.helper.StringUtil;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -26,7 +28,7 @@ import cn.suishoucm.weixin.netmi.util.StringResponse;
 @Controller
 
 public class UrlLoadController {
-
+	Logger logger = LoggerFactory.getLogger(UrlLoadController.class);
 	private static HttpClientContext context = HttpClientContext.create();
 
 	static {
@@ -36,49 +38,16 @@ public class UrlLoadController {
 	@RequestMapping(value = "")
 
 	public String openUrl(String url, Model model) throws Exception {
-		Map<String, Object> result = new HashMap<>();
-		String baseUrl = url;
 
-		StringResponse sr = HttpUtils.get(baseUrl,context);
-	
-		
-		System.out.println(sr.getResponseBody());
-		Document doc = Jsoup.parse(sr.getResponseBody(), baseUrl);
-		Elements eles= doc.getElementsByAttribute("src");
-		for (Element ele : eles) {
-			String src=ele.attr("src");
-			URI uri=new URI(src);
-			String host=uri.getHost();
-			if(host!=null){
-				String id=DigestUtils.md5Hex(host);
-				map.put(id, host);
-				src=id+uri.getPath();
-				ele.attr("src",src);
-			}
-			//if(src.startsWith("//")+url2.get)
-			
-		}
-		System.out.println();
-
-		// result.put("html", sr.getResponseBody());
-		System.out.println(doc.html());
-		model.addAttribute("html", doc.html());
-
-		return "/urlLoad/html";
+		return page(url, model);
 
 	}
 
 	private static Map<String, String> map = new HashMap<>();
 
-	static {
-		map.put("zzz", "http://www.baidu.com/");
-		map.put("xxx", "http://www.icbc.com.cn/ICBC/%E9%87%8D%E8%A6%81%E5%85%AC%E5%91%8A/default1.htm");
-	}
-
 	@RequestMapping("{a1}/{a2:.+}")
 	public String a1a2(@PathVariable("a1") String a1, @PathVariable("a2") String a2, Model model) throws Exception {
-		String url = map.get(a1);
-		System.out.println(url);
+		String url = StringUtil.resolve(map.get(a1), a2);
 		return page(url, model);
 	}
 
@@ -88,7 +57,7 @@ public class UrlLoadController {
 		String relativePath = a2 + "/" + a3;
 
 		String url = StringUtil.resolve(map.get(a1), relativePath);
-		System.out.println(url);
+
 		return page(url, model);
 	}
 
@@ -96,10 +65,9 @@ public class UrlLoadController {
 	public String a1a2a3a4(@PathVariable("a1") String a1, @PathVariable("a2") String a2, @PathVariable("a3") String a3,
 			@PathVariable("a4") String a4, Model model) throws Exception {
 		String relativePath = a2 + "/" + a3 + "/" + a4;
-	
+
 		String url = StringUtil.resolve(map.get(a1), relativePath);
 
-		System.out.println(url);
 		return page(url, model);
 	}
 
@@ -109,7 +77,6 @@ public class UrlLoadController {
 					throws Exception {
 		String relativePath = a2 + "/" + a3 + "/" + a4 + "/" + a5;
 		String url = StringUtil.resolve(map.get(a1), relativePath);
-		System.out.println(url);
 		return page(url, model);
 	}
 
@@ -119,7 +86,6 @@ public class UrlLoadController {
 			@PathVariable("a6") String a6, Model model) throws Exception {
 		String relativePath = a2 + "/" + a3 + "/" + a4 + "/" + a5 + "/" + a6;
 		String url = StringUtil.resolve(map.get(a1), relativePath);
-		System.out.println(url);
 		return page(url, model);
 	}
 
@@ -128,9 +94,8 @@ public class UrlLoadController {
 			@PathVariable("a3") String a3, @PathVariable("a4") String a4, @PathVariable("a5") String a5,
 			@PathVariable("a6") String a6, @PathVariable("a7") String a7, Model model) throws Exception {
 		String relativePath = a2 + "/" + a3 + "/" + a4 + "/" + a5 + "/" + a6 + "/" + a7;
-		
+
 		String url = StringUtil.resolve(map.get(a1), relativePath);
-		System.out.println(url);
 		return page(url, model);
 	}
 
@@ -141,7 +106,6 @@ public class UrlLoadController {
 					throws Exception {
 		String relativePath = a2 + "/" + a3 + "/" + a4 + "/" + a5 + "/" + a6 + "/" + a7 + "/" + a8;
 		String url = StringUtil.resolve(map.get(a1), relativePath);
-		System.out.println(url);
 		return page(url, model);
 	}
 
@@ -152,7 +116,6 @@ public class UrlLoadController {
 			@PathVariable("a9") String a9, Model model) throws Exception {
 		String relativePath = a2 + "/" + a3 + "/" + a4 + "/" + a5 + "/" + a6 + "/" + a7 + "/" + a8 + "/" + a9;
 		String url = StringUtil.resolve(map.get(a1), relativePath);
-		System.out.println(url);
 		return page(url, model);
 	}
 
@@ -164,33 +127,62 @@ public class UrlLoadController {
 		String relativePath = a2 + "/" + a3 + "/" + a4 + "/" + a5 + "/" + a6 + "/" + a7 + "/" + a8 + "/" + a9 + "/"
 				+ a10;
 		String url = StringUtil.resolve(map.get(a1), relativePath);
-		System.out.println(url);
 		return page(url, model);
 	}
 
 	private String page(String url, Model model) throws Exception {
+		URI baseUri = new URI(url);
+		System.out.println("œ¬‘ÿ£∫" + url);
 		if (url.endsWith(".jpg") || url.endsWith(".gif") || url.endsWith(".png")) {
 			model.addAttribute("binary", HttpUtils.getBinary(url).getResponseBody());
 			return "/urlLoad/img";
 		} else if (url.endsWith(".css")) {
-			String html = HttpUtils.get(url,context).getResponseBody();
+			String html = HttpUtils.get(url, context).getResponseBody();
 			model.addAttribute("css", html);
 			return "/urlLoad/css";
 
 		} else if (url.endsWith(".js")) {
-			String html = HttpUtils.get(url,context).getResponseBody();
+			String html = HttpUtils.get(url, context).getResponseBody();
 			model.addAttribute("js", html);
 			return "/urlLoad/js";
 		} else {
-			String html = HttpUtils.get(url,context).getResponseBody();
+			String html = HttpUtils.get(url, context).getResponseBody();
 			Document doc = Jsoup.parse(html);
+
 			Elements eles = doc.getElementsByAttribute("src");
-	
+			attrFilter(eles, baseUri, "src");
+
 			eles = doc.getElementsByAttribute("href");
+			attrFilter(eles, baseUri, "href");
+
 			model.addAttribute("html", doc.html());
 			return "/urlLoad/html";
 		}
 
+	}
+
+	private void attrFilter(Elements eles, URI baseUri, String attrName) {
+		for (Element ele : eles) {
+			try {
+				String src = ele.attr(attrName);
+				URI uri = new URI(src);
+				String host = uri.getHost();
+				if (host == null) {
+					host = baseUri.getHost();
+				}
+				String id = DigestUtils.md5Hex(host);
+				String scheme = uri.getScheme();
+				if (scheme == null) {
+					scheme = baseUri.getScheme();
+				}
+				map.put(id, scheme + "://" + host);
+				src = id + uri.getPath();
+				ele.attr(attrName, "/" + src + (uri.getQuery() == null ? "" : "?" + uri.getQuery()));
+			} catch (Exception e) {
+				logger.error(ele.toString(), e);
+			}
+
+		}
 	}
 
 }
